@@ -172,6 +172,10 @@ protected:
   void stopObjDetect();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
+
+  bool startCameraStreaming(std::string & errMsg);
+  void stopCameraStreaming();
+
   // <---- Initialization functions
 
   // ----> Callbacks
@@ -608,6 +612,7 @@ private:
   bool mTriggerAutoExpGain = true;  // Triggered on start
   bool mTriggerAutoWB = true;       // Triggered on start
   bool mRecording = false;
+  bool mStreaming = false;    // =====CAMERA STREAMING CODE=====
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
@@ -662,6 +667,19 @@ private:
   std::string mSvoRecFilename;
   // <---- SVO Recording parameters
 
+  // =====BEGIN CAMERA STREAMING CODE=====
+  sl::STREAMING_CODEC codec = sl::STREAMING_CODEC::H264;
+  unsigned int port = 5810;
+  unsigned int bitrate = 2000;
+  unsigned int gop_size = -1;
+  bool adaptive_bitrate = false;
+  bool result;
+  std::string info;
+  
+  
+  
+  // =====END CAMERA STREAMING CODE=====
+
   // ----> Services
   resetOdomSrvPtr mResetOdomSrv;
   resetPosTrkSrvPtr mResetPosTrkSrv;
@@ -670,6 +688,8 @@ private:
   enableMappingPtr mEnableMappingSrv;
   startSvoRecSrvPtr mStartSvoRecSrv;
   stopSvoRecSrvPtr mStopSvoRecSrv;
+  // startRemoteStreamPtr mStartRemoteStreamSrv; // =====CAMERA STREAMING CODE=====
+  // stopRemoteStreamPtr mStopRemoteStreamSrv; // =====CAMERA STREAMING CODE=====
   pauseSvoSrvPtr mPauseSvoSrv;
   setRoiSrvPtr mSetRoiSrv;
   resetRoiSrvPtr mResetRoiSrv;
@@ -683,6 +703,8 @@ private:
   const std::string mSrvEnableMappingName = "enable_mapping";
   const std::string mSrvStartSvoRecName = "start_svo_rec";
   const std::string mSrvStopSvoRecName = "stop_svo_rec";
+  // const std::string mSrvStartRemoteStreamName = "start_remote_stream"; // =====CAMERA STREAMING CODE=====
+  // const std::string mSrvStopRemoteStreamName = "stop_remote_stream"; // =====CAMERA STREAMING CODE=====
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
   const std::string mSrvSetRoiName = "set_roi";
   const std::string mSrvResetRoiName = "reset_roi";

@@ -27,13 +27,13 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
-#ifdef FOUND_HUMBLE
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#elif defined FOUND_FOXY
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#else
-#error Unsupported ROS2 distro
-#endif
+// #ifdef FOUND_HUMBLE
+// #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+// #elif defined FOUND_FOXY
+// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+// #else
+// #error Unsupported ROS2 distro
+// #endif
 
 #include <sl/Camera.hpp>
 
@@ -240,6 +240,7 @@ srv_prefix += get_name();*/
   mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
     srv_name, std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+
 
   srv_name = srv_prefix + mSrvSetRoiName;
   mSetRoiSrv = create_service<zed_interfaces::srv::SetROI>(
@@ -2763,6 +2764,12 @@ bool ZedCamera::startCamera()
     startTempPubTimer();
   }
 
+
+  // Start remote stream
+  std::string randomStringTemporaryRemoveThis;
+  startCameraStreaming(randomStringTemporaryRemoveThis);
+
+
   return true;
 }  // namespace stereolabs
 
@@ -3162,6 +3169,40 @@ void ZedCamera::stopSvoRecording()
     mZed.disableRecording();
   }
 }
+
+
+// =====BEGIN CAMERA STREAMING CODE===== //
+bool ZedCamera::startCameraStreaming(std::string & errMsg) 
+{
+  sl::StreamingParameters stream_params;
+  stream_params.codec = codec;
+  stream_params.bitrate = bitrate;
+  stream_params.port = port;
+  // Enable streaming with the streaming parameters
+  sl::ERROR_CODE err = mZed.enableStreaming(stream_params);
+  errMsg = sl::toString(err);
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_ERROR_STREAM(get_logger(), "Error starting local camera streaming: " << errMsg);
+    return false;
+  }
+
+  mStreaming = true;
+  return true;
+}
+
+void ZedCamera::stopCameraStreaming() {
+  if (mStreaming) {
+    mStreaming = false;
+    mZed.disableStreaming();
+  }
+}
+
+
+
+
+// =====END CAMERA STREAMING CODE===== //
+
 
 void ZedCamera::initTransforms()
 {
@@ -6289,7 +6330,7 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
   size_t markerSubNumber = 0;
   size_t planeSubNumber = 0;
   try {
-    markerSubNumber = count_subscribers(mPubMarker->get_topic_name());
+    // markerSubNumber = count_subscribers(mPubMarker->get_topic_name());
     planeSubNumber = count_subscribers(mPubPlane->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
@@ -6330,8 +6371,9 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
     // Get the TF2 transformation
     geometry_msgs::msg::PointStamped ptCam;
 
-    tf2::doTransform(*(msg.get()), ptCam, m2o);
-
+    // tf2::doTransform(*(msg.get()), ptCam, m2o);
+    RCLCPP_ERROR(get_logger(), "The function `callback_clickedPoint()` in the ZED ROS2 Wrapper has been removed in order to compile with the modifications done to allow camera streaming.");
+    // return;
     camX = ptCam.point.x;
     camY = ptCam.point.y;
     camZ = ptCam.point.z;
