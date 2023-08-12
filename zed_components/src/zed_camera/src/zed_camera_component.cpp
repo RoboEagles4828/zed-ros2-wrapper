@@ -6839,7 +6839,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     objects2d.push_back(object2d);
   }
 
-  mZed.ingestCustomBoxObjects(objects2d);
+  mZed.ingestCustomBoxObjects(objects2d, mObjDetInstID);
   // <---- Custom Object Detection: Get 2d bounding boxes, convert to objects and send to ZED
 
 

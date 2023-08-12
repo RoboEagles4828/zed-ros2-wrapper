@@ -316,7 +316,7 @@ private:
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
 
-  bool mObjDetEnabled = false;
+  bool mObjDetEnabled = true;
   bool mObjDetTracking = true;
   float mObjDetConfidence = 40.0f;
   double mObjDetPredTimeout = 0.5;
@@ -335,7 +335,7 @@ private:
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
 
   Yolo detector;
-  std::string enginePath = "";
+  std::string enginePath = "/home/ugack/model.engine";
 
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel = sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
