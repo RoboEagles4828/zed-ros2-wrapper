@@ -21,6 +21,7 @@
 #include "sl_tools.hpp"
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
+#include "yolo.hpp"
 
 #include <atomic>
 
@@ -322,16 +323,19 @@ private:
   bool mObjDetReducedPrecision = false;
   float mObjDetMaxRange = 15.0f;
   std::vector<sl::OBJECT_CLASS> mObjDetFilter;
-  bool mObjDetPeopleEnable = true;
-  bool mObjDetVehiclesEnable = true;
-  bool mObjDetBagsEnable = true;
-  bool mObjDetAnimalsEnable = true;
-  bool mObjDetElectronicsEnable = true;
-  bool mObjDetFruitsEnable = true;
-  bool mObjDetSportEnable = true;
+  bool mObjDetPeopleEnable = false;
+  bool mObjDetVehiclesEnable = false;
+  bool mObjDetBagsEnable = false;
+  bool mObjDetAnimalsEnable = false;
+  bool mObjDetElectronicsEnable = false;
+  bool mObjDetFruitsEnable = false;
+  bool mObjDetSportEnable = false;
   bool mObjDetBodyFitting = false;
-  sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
+  sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
+
+  Yolo detector;
+  std::string enginePath = "";
 
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel = sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;

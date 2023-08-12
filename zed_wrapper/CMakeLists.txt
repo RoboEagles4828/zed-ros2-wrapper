@@ -75,8 +75,9 @@ endif()
 
 #############################################
 # Dependencies
-find_package(ZED 3 REQUIRED)
+find_package(ZED 4 REQUIRED)
 find_package(CUDA REQUIRED)
+find_package(OpenCV REQUIRED)
 
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
@@ -100,6 +101,7 @@ add_custom_target(all_${PROJECT_NAME}_files SOURCES ${all_files})
 ###############################################################################
 # INCLUDES and LIBS
 include_directories(
+  ${OpenCV_INCLUDE_DIRS}
   ${CUDA_INCLUDE_DIRS}
   ${ZED_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}/src

@@ -4039,7 +4039,7 @@ bool ZedCamera::startPosTracking()
 
     sl::PositionalTrackingFusionParameters params;
     params.enable_GNSS_fusion = mGnssFusionEnabled;
-    params.gnss_initialisation_distance = mGnssInitDistance;
+    // params.gnss_initialisation_distance = mGnssInitDistance;
     sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking(params);
 
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
@@ -4224,6 +4224,10 @@ bool ZedCamera::startObjDetect()
   mObjDetInstID = ++mAiInstanceID;
   od_p.instance_module_id = mObjDetInstID;
 
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
+    RCLCPP_INFO_STREAM(get_logger(), "[RoboEagles] Custom Object Detection mode is loading...");
+  }
+
   mObjDetFilter.clear();
   if (mObjDetPeopleEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
@@ -4248,6 +4252,15 @@ bool ZedCamera::startObjDetect()
   }
 
   sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
+
+  if (enginePath != "") {
+    if (detector.init(enginePath)) {
+      RCLCPP_ERROR_STREAM(get_logger(), "[RoboEagles] oh no the yolo detector fucked itself");
+      RCLCPP_ERROR_STREAM(get_logger(), "[RoboEagles] Disabling object detection to prevent further issues");
+      mObjDetRunning = false;
+      return false;
+    }
+  }
 
   if (objDetError != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_ERROR_STREAM(get_logger(), "Object detection error: " << sl::toString(objDetError));
@@ -6543,7 +6556,7 @@ void ZedCamera::processGeoPose()
     getGnss2BaseTransform();
   }
 
-  mGeoPoseStatus = mFusion.getGeoPose(mLastGeoPose);
+  // mGeoPoseStatus = mFusion.getGeoPose(mLastGeoPose);
 
   publishGeoPoseStatus();
 
@@ -6746,6 +6759,15 @@ void ZedCamera::publishGnssPose()
   }
 }
 
+std::vector<sl::uint2> cvt(const BBox &bbox_in) {
+    std::vector<sl::uint2> bbox_out(4);
+    bbox_out[0] = sl::uint2(bbox_in.x1, bbox_in.y1);
+    bbox_out[1] = sl::uint2(bbox_in.x2, bbox_in.y1);
+    bbox_out[2] = sl::uint2(bbox_in.x2, bbox_in.y2);
+    bbox_out[3] = sl::uint2(bbox_in.x1, bbox_in.y2);
+    return bbox_out;
+}
+
 void ZedCamera::processDetectedObjects(rclcpp::Time t)
 {
   size_t objdet_sub_count = 0;
@@ -6796,6 +6818,30 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   }
   objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
   // <---- Process realtime dynamic parameters
+
+
+  // ----> Custom Object Detection: Get 2d bounding boxes, convert to objects and send to ZED
+
+  // this may need to go in the header file
+  sl::Mat left_sl;
+  mZed.retrieveImage(left_sl, sl::VIEW::LEFT);
+
+  auto detections = detector.run(left_sl, mCamHeight, mCamWidth, 0.3); // Last arg is the CONF_THRESH argument
+
+  std::vector<sl::CustomBoxObjectData> objects2d;
+  for (auto &detection : detections) {
+    sl::CustomBoxObjectData object2d;
+    object2d.unique_object_id = sl::generate_unique_id();
+    object2d.probability = detection.prob;
+    object2d.label = (int)detection.label;
+    object2d.bounding_box_2d = cvt(detection.box);
+    object2d.is_grounded = ((int)detection.label == 0);
+    objects2d.push_back(object2d);
+  }
+
+  mZed.ingestCustomBoxObjects(objects2d);
+  // <---- Custom Object Detection: Get 2d bounding boxes, convert to objects and send to ZED
+
 
   sl::Objects objects;
 
