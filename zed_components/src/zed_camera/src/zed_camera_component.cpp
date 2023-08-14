@@ -1459,9 +1459,13 @@ void ZedCamera::getOdParams()
 
   DEBUG_STREAM_OD(" 'object_detection.model': " << model_str.c_str());
 
+  getParam("object_detection.custom_model_path", mObjDetEnginePath, mObjDetEnginePath);
+
+  DEBUG_STREAM_OD(" 'object_detection.custom_model_path': " << mObjDetEnginePath.c_str());
+
   bool matched = false;
   for (int idx = static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
-    idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS); idx++)
+    idx <= static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS); idx++)
   {
     sl::OBJECT_DETECTION_MODEL test_model = static_cast<sl::OBJECT_DETECTION_MODEL>(idx);
     std::string test_model_str = sl::toString(test_model).c_str();
@@ -4225,42 +4229,41 @@ bool ZedCamera::startObjDetect()
   od_p.instance_module_id = mObjDetInstID;
 
   if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
-    RCLCPP_INFO_STREAM(get_logger(), "[RoboEagles] Custom Object Detection mode is loading...");
-  }
-
-  mObjDetFilter.clear();
-  if (mObjDetPeopleEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
-  }
-  if (mObjDetVehiclesEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-  }
-  if (mObjDetBagsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
-  }
-  if (mObjDetAnimalsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
-  }
-  if (mObjDetElectronicsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
-  }
-  if (mObjDetFruitsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
-  }
-  if (mObjDetSportEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
-  }
-
-  sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
-
-  if (enginePath != "") {
-    if (detector.init(enginePath)) {
-      RCLCPP_ERROR_STREAM(get_logger(), "[RoboEagles] oh no the yolo detector fucked itself");
-      RCLCPP_ERROR_STREAM(get_logger(), "[RoboEagles] Disabling object detection to prevent further issues");
+    if (detector.init(mObjDetEnginePath)) {
+      RCLCPP_ERROR_STREAM(get_logger(), "Custom Object detection error: Failed to initalize Yolo with the provided engine!");
+      RCLCPP_ERROR_STREAM(get_logger(), "Try checking to make sure you have the dependencies installed and that the engine file is in the correct location!");
+      RCLCPP_ERROR_STREAM(get_logger(), "Disabling object detection to prevent further issues");
       mObjDetRunning = false;
       return false;
     }
+    RCLCPP_INFO(get_logger(), "Custom Object Detection model loaded from path %s", mObjDetEnginePath);
+  } else {
+    mObjDetFilter.clear();
+    if (mObjDetPeopleEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if (mObjDetVehiclesEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
+    if (mObjDetBagsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+    }
+    if (mObjDetAnimalsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+    }
+    if (mObjDetElectronicsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+    }
+    if (mObjDetFruitsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+    }
+    if (mObjDetSportEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+    }
   }
+
+
+  sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
 
   if (objDetError != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_ERROR_STREAM(get_logger(), "Object detection error: " << sl::toString(objDetError));
@@ -6794,52 +6797,56 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   // ----> Process realtime dynamic parameters
   objectTracker_parameters_rt.detection_confidence_threshold = mObjDetConfidence;
-  mObjDetFilter.clear();
-  if (mObjDetPeopleEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+  if (mObjDetModel != sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
+    mObjDetFilter.clear();
+    if (mObjDetPeopleEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if (mObjDetVehiclesEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
+    if (mObjDetBagsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+    }
+    if (mObjDetAnimalsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+    }
+    if (mObjDetElectronicsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+    }
+    if (mObjDetFruitsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+    }
+    if (mObjDetSportEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+    }
+    objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
   }
-  if (mObjDetVehiclesEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-  }
-  if (mObjDetBagsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
-  }
-  if (mObjDetAnimalsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
-  }
-  if (mObjDetElectronicsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
-  }
-  if (mObjDetFruitsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
-  }
-  if (mObjDetSportEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
-  }
-  objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
   // <---- Process realtime dynamic parameters
 
 
   // ----> Custom Object Detection: Get 2d bounding boxes, convert to objects and send to ZED
 
-  // this may need to go in the header file
-  sl::Mat left_sl;
-  mZed.retrieveImage(left_sl, sl::VIEW::LEFT);
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
+    sl::Mat left_sl;
+    mZed.retrieveImage(left_sl, sl::VIEW::LEFT);
 
-  auto detections = detector.run(left_sl, mCamHeight, mCamWidth, 0.3); // Last arg is the CONF_THRESH argument
+    auto detections = detector.run(left_sl, mCamHeight, mCamWidth, mObjDetConfidence / 100); // Last arg is the CONF_THRESH argument, may need to get from config
 
-  std::vector<sl::CustomBoxObjectData> objects2d;
-  for (auto &detection : detections) {
-    sl::CustomBoxObjectData object2d;
-    object2d.unique_object_id = sl::generate_unique_id();
-    object2d.probability = detection.prob;
-    object2d.label = (int)detection.label;
-    object2d.bounding_box_2d = cvt(detection.box);
-    object2d.is_grounded = ((int)detection.label == 0);
-    objects2d.push_back(object2d);
+    std::vector<sl::CustomBoxObjectData> objects2d;
+    for (auto &detection : detections) {
+      sl::CustomBoxObjectData object2d;
+      object2d.unique_object_id = sl::generate_unique_id();
+      object2d.probability = detection.prob;
+      object2d.label = (int)detection.label;
+      object2d.bounding_box_2d = cvt(detection.box);
+      object2d.is_grounded = ((int)detection.label == 0);
+      objects2d.push_back(object2d);
+    }
+
+    mZed.ingestCustomBoxObjects(objects2d, mObjDetInstID);
   }
 
-  mZed.ingestCustomBoxObjects(objects2d, mObjDetInstID);
   // <---- Custom Object Detection: Get 2d bounding boxes, convert to objects and send to ZED
 
 

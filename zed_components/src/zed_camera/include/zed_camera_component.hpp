@@ -335,7 +335,7 @@ private:
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
 
   Yolo detector;
-  std::string enginePath = "/home/ugack/model.engine";
+  std::string mObjDetEnginePath = "";
 
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel = sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
