@@ -75,7 +75,7 @@ endif()
 
 #############################################
 # Dependencies
-find_package(ZED 3 REQUIRED)
+find_package(ZED 4 REQUIRED)
 
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if(CMAKE_SYSTEM_NAME2 MATCHES "aarch64") # Jetson TX
@@ -83,6 +83,7 @@ if(CMAKE_SYSTEM_NAME2 MATCHES "aarch64") # Jetson TX
 endif()
 
 find_package(CUDA REQUIRED)
+find_package(OpenCV REQUIRED)
 
 set(DEPENDENCIES
     rclcpp
@@ -150,6 +151,7 @@ add_custom_target(all_${PROJECT_NAME}_files SOURCES ${all_files})
 ###############################################################################
 # INCLUDES and LIBS
 include_directories(
+    ${OpenCV_INCLUDE_DIRS}
     ${CUDA_INCLUDE_DIRS}
     ${ZED_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
@@ -160,6 +162,7 @@ include_directories(
 # create ament index resource which references the libraries in the binary dir
 set(node_plugins "")
 
+link_directories(${OpenCV_LIBRARY_DIRS})
 link_directories(${ZED_LIBRARY_DIR})
 link_directories(${CUDA_LIBRARY_DIRS})
 
@@ -184,12 +187,20 @@ set(SL_TOOLS_SRC
 set(ZED_CAMERA_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/sl_types.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp    
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/yolo.hpp    
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/cuda_utils.h    
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/logging.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/utils.h
 )
 
 set(ZED_CAMERA_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/yolo.cpp
 )
+
+SET(TRT_LIBS nvinfer nvonnxparser)
 
 ###############################################################################
 # Bin and Install
@@ -204,6 +215,8 @@ target_compile_definitions(zed_camera_component
     PRIVATE "COMPOSITION_BUILDING_DLL"
 )
 target_link_libraries(zed_camera_component
+    ${TRT_LIBS}
+    ${OpenCV_LIBS}
     ${ZED_LIBS}
 )
 ament_target_dependencies(zed_camera_component
